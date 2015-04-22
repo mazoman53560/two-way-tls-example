@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:data-mapper="http://www.mulesoft.org/schema/mule/ee/data-mapper" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:ftp="http://www.mulesoft.org/schema/mule/ee/ftp" xmlns:sftp="http://www.mulesoft.org/schema/mule/sftp" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" version="EE-3.6.1"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/sftp http://www.mulesoft.org/schema/mule/sftp/current/mule-sftp.xsd
+http://www.mulesoft.org/schema/mule/ee/ftp http://www.mulesoft.org/schema/mule/ee/ftp/current/mule-ftp-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/data-mapper http://www.mulesoft.org/schema/mule/ee/data-mapper/current/mule-data-mapper.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+    <http:listener-config name="HTTP_Trigger_Configuration" host="0.0.0.0" port="8085" doc:name="HTTP Listener Configuration"/>
+    <http:request-config name="HTTP_Request_Configuration" protocol="HTTPS" host="localhost" port="8081" basePath="/"  doc:name="HTTP Request Configuration">
+        <tls:context>
+            <tls:trust-store path="myclient_truststore.jks" password="password"/>
+            <tls:key-store path="myclient_keystore.jks" password="password" keyPassword="password"/>
+        </tls:context>
+    </http:request-config>
+    <http:listener-config name="HTTP_Server_Configuration" host="0.0.0.0" port="8081" doc:name="HTTP Listener Configuration" protocol="HTTPS">
+        <tls:context>
+            <tls:trust-store path="myserver_truststore.jks" password="password"/>
+            <tls:key-store path="myserver_keystore.jks" password="password" keyPassword="password"/>
+        </tls:context>
+    </http:listener-config>
+    <flow name="ServerFlow">
+        <http:listener config-ref="HTTP_Server_Configuration" path="/" doc:name="HTTPS_Server">
+            <http:response-builder statusCode="200" reasonPhrase="Success"/>
+        </http:listener>
+        <logger message="TLS authenticated request received" level="INFO" doc:name="Logger"/>
+        <set-payload value="TLS flow test SUCCESSFUL" doc:name="Set Payload"/>
+    </flow>
+    <flow name="ClientFlow">
+        <http:listener config-ref="HTTP_Trigger_Configuration" path="/" doc:name="HTTP_Trigger"/>
+        <logger message="Attempting TLS authenticated HTTPS Request" level="INFO" doc:name="Logger"/>
+        <set-variable variableName="MECH_ID" value="TEST" doc:name="Variable"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="/" method="GET" doc:name="HTTPS_Requester">
+            <http:request-builder>
+                <http:query-param paramName="MECH_ID" value="#[flowVars[&quot;MECH_ID&quot;]]"/>
+            </http:request-builder>
+        </http:request>
+        <logger message="TLS authenticated HTTPS request successful." level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>
